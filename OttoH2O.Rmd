@@ -1,0 +1,181 @@
+---
+title: "Otto H20"
+output: html_document
+---
+
+```{r}
+setwd("/home/ubuntu/data_science/Otto")
+
+# read CV data
+train0 <- read.csv("train_cv0.csv")
+train1 <- read.csv("train_cv1.csv")
+train2 <- read.csv("train_cv2.csv")
+train3 <- read.csv("train_cv3.csv")
+train4 <- read.csv("train_cv4.csv")
+
+test0 <- read.csv("test_cv0.csv")
+test1 <- read.csv("test_cv1.csv")
+test2 <- read.csv("test_cv2.csv")
+test3 <- read.csv("test_cv3.csv")
+test4 <- read.csv("test_cv4.csv")
+
+
+library(h2o)
+localH2O <- h2o.init(nthread=32, max_mem_size="10g", min_mem_size="5g")
+
+train <- read.csv("train.csv")
+
+# transform features so that they are drawn from N(0, 1) - used for activation function
+for(i in 2:94){
+  train[,i] <- as.numeric(train[,i])
+  train[,i] <- sqrt(train[,i]+(3/8))   # square the features 
+}
+
+# change number from 0 to 4
+for(i in 2:94){
+  train0[,i] <- as.numeric(train0[,i])
+  train0[,i] <- sqrt(train0[,i]+(3/8))   # square the features 
+  
+  test0[,i] <- as.numeric(test0[,i])
+  test0[,i] <- sqrt(test0[,i]+(3/8))
+  
+  train1[,i] <- as.numeric(train1[,i])
+  train1[,i] <- sqrt(train1[,i]+(3/8))   # square the features 
+  
+  test1[,i] <- as.numeric(test1[,i])
+  test1[,i] <- sqrt(test1[,i]+(3/8))
+  
+  train2[,i] <- as.numeric(train2[,i])
+  train2[,i] <- sqrt(train2[,i]+(3/8))   # square the features 
+  
+  test2[,i] <- as.numeric(test2[,i])
+  test2[,i] <- sqrt(test2[,i]+(3/8))
+  
+  train3[,i] <- as.numeric(train3[,i])
+  train3[,i] <- sqrt(train3[,i]+(3/8))   # square the features 
+  
+  test3[,i] <- as.numeric(test3[,i])
+  test3[,i] <- sqrt(test3[,i]+(3/8))
+  
+  train4[,i] <- as.numeric(train4[,i])
+  train4[,i] <- sqrt(train4[,i]+(3/8))   # square the features 
+  
+  test4[,i] <- as.numeric(test4[,i])
+  test4[,i] <- sqrt(test4[,i]+(3/8))
+}
+
+
+test <- read.csv("test.csv")
+
+for(i in 2:94){
+  test[,i] <- as.numeric(test[,i])
+  test[,i] <- sqrt(test[,i]+(3/8))
+}
+
+
+# convert to H2OData Parser object
+train0.hex <- as.h2o(localH2O, train0)
+test0.hex <- as.h2o(localH2O, test0[,2:94])
+
+train1.hex <- as.h2o(localH2O, train1)
+test1.hex <- as.h2o(localH2O, test1[,2:94])
+
+train2.hex <- as.h2o(localH2O, train2)
+test2.hex <- as.h2o(localH2O, test2[,2:94])
+
+train3.hex <- as.h2o(localH2O, train3)
+test3.hex <- as.h2o(localH2O, test3[,2:94])
+
+train4.hex <- as.h2o(localH2O, train4)
+test4.hex <- as.h2o(localH2O, test4[,2:94])
+
+train.hex <- as.h2o(localH2O, train)
+test.hex <- as.h2o(localH2O, test[,2:94])
+
+predictors <- 2:(ncol(train.hex)-1)   # index of predictors 
+response <- ncol(train.hex)           # index of response
+
+pred0 <- read.csv("sampleSubmission.csv")
+pred0[,2:10] <- 0
+pred0 <- pred0[1:nrow(test0.hex), 2:10]
+
+pred1 <- read.csv("sampleSubmission.csv")
+pred1[,2:10] <- 0
+pred1 <- pred1[1:nrow(test1.hex), 2:10]
+
+pred2 <- read.csv("sampleSubmission.csv")
+pred2[,2:10] <- 0
+pred2 <- pred2[1:nrow(test2.hex), 2:10]
+
+pred3 <- read.csv("sampleSubmission.csv")
+pred3[,2:10] <- 0
+pred3 <- pred3[1:nrow(test3.hex), 2:10]
+
+pred4 <- read.csv("sampleSubmission.csv")
+pred4[,2:10] <- 0
+pred4 <- pred4[1:nrow(test4.hex), 2:10]
+
+# Trial run
+
+deep.model <- h2o.deeplearning(x=predictors,
+                            y=response,
+                            data=train.hex,
+                            classification=T,
+                            activation="RectifierWithDropout",
+                            hidden=c(1024,512,256),
+                            hidden_dropout_ratio=c(0.5,0.5,0.5),
+                            input_dropout_ratio=0.05,
+                            epochs=100,
+                            l1=1e-5,
+                            l2=1e-5,
+                            rho=0.99,
+                            epsilon=1e-8,
+                            train_samples_per_iteration=2000,
+                            max_w2=10,
+                            nfold = 5,   # use 5 CV
+                            seed=26)
+
+# see the performance of the model
+deep.model 
+
+# with epochs 50: 
+# Training classification error: 0.165123
+# Validation classification error: 0.4833059
+
+# with epochs 100:
+# 1:36 - 
+# 
+# 
+
+
+for(i in 1:20){
+  print(i)
+  model <- h2o.deeplearning(x=predictors,
+                            y=response,
+                            data=train1.hex,
+                            classification=T,
+                            activation="RectifierWithDropout",
+                            hidden=c(1024,512,256),
+                            hidden_dropout_ratio=c(0.5,0.5,0.5),
+                            input_dropout_ratio=0.05,
+                            epochs=50,
+                            l1=1e-5,
+                            l2=1e-5,
+                            rho=0.99,
+                            epsilon=1e-8,
+                            train_samples_per_iteration=2000,
+                            max_w2=10,
+                            seed=26)
+  pred1 <- pred1 + as.data.frame(h2o.predict(model, test1.hex))[, 2:10]
+  print(pred1[1:2, ])
+}      
+
+pred1 <- pred1 / 20.0
+
+write.csv(pred1, file="predicted_h2o_1.csv", row.names=FALSE) 
+
+                   
+
+
+
+```
