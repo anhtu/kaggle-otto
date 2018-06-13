@@ -1,1 +1,1 @@
-# kaggle-otto
+The model that won top 3% of Kaggle Otto challenge https://www.kaggle.com/c/otto-group-product-classification-challenge. It's an ensemble model of Random Forest (scikit-learn), Gradient Boosted Trees (xgboost) and Neural Network (H20).  
